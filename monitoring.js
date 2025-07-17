@@ -1,22 +1,54 @@
 "use strict";
 
-const { MeterProvider } = require("@opentelemetry/sdk-metrics");
+const { PrometheusExporter } = require("@opentelemetry/exporter-prometheus");
+const {
+  MeterProvider,
+  PeriodicExportingMetricReader,
+} = require("@opentelemetry/sdk-metrics");
 
-// creating a MeterProvider and getting a meter instance
-const meterProvider = new MeterProvider();
-const meter = meterProvider.getMeter("your-meter-name");
+// creating Exporter
+const exporter = new PrometheusExporter(
+  {
+    port: 9464,
+    preventServerStart: false,
+  },
+  () => {
+    console.log(
+      `Prometheus metrics available at http://localhost:9464/metrics`,
+    );
+  },
+);
 
-// creating a counter instrument
-const requestCount = meter.createCounter("requests", {
-  description: "Count all incoming HTTP requests",
+// creating MetricReader
+const metricReader = new PeriodicExportingMetricReader({
+  exporter: exporter,
+  exportIntervalMillis: 1000,
 });
 
-// exporting a middleware function to count requests by route
+// creating MetricProvider with reader
+const meterProvider = new MeterProvider({
+  readers: [metricReader],
+});
+
+const meter = meterProvider.getMeter("app-meter");
+
+const requestCount = meter.createCounter("http_requests", {
+  description: "Count of HTTP requests",
+  unit: "1",
+});
+
+// middleware exportation
 module.exports.countAllRequests = () => {
   return (req, res, next) => {
     requestCount.add(1, {
       route: req.path,
+      method: req.method,
+      status_code: res.statusCode,
     });
     next();
   };
 };
+
+process.on("unhandledRejection", (err) => {
+  console.error("Metrics setup error:", err);
+});
