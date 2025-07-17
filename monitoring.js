@@ -40,10 +40,12 @@ const requestCount = meter.createCounter("http_requests", {
 // middleware exportation
 module.exports.countAllRequests = () => {
   return (req, res, next) => {
-    requestCount.add(1, {
-      route: req.path,
-      method: req.method,
-      status_code: res.statusCode,
+    res.on("finish", () => {
+      requestCount.add(1, {
+        route: req.path,
+        method: req.method,
+        status_code: res.statusCode,
+      });
     });
     next();
   };
