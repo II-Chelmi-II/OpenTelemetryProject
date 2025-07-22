@@ -1,13 +1,11 @@
 "use strict";
 
 const { PrometheusExporter } = require("@opentelemetry/exporter-prometheus");
-const {
-  MeterProvider,
-  PeriodicExportingMetricReader,
-} = require("@opentelemetry/sdk-metrics");
+const { MeterProvider } = require("@opentelemetry/sdk-metrics");
+const { resourceFromAttributes } = require("@opentelemetry/resources");
 
-// creating Exporter
-const exporter = new PrometheusExporter(
+// create PrometheusExporter and use it as a reader
+const prometheusExporter = new PrometheusExporter(
   {
     port: 9464,
     preventServerStart: false,
@@ -19,15 +17,11 @@ const exporter = new PrometheusExporter(
   },
 );
 
-// creating MetricReader
-const metricReader = new PeriodicExportingMetricReader({
-  exporter: exporter,
-  exportIntervalMillis: 1000,
-});
-
-// creating MetricProvider with reader
 const meterProvider = new MeterProvider({
-  readers: [metricReader],
+  readers: [prometheusExporter],
+  resource: resourceFromAttributes({
+    "service.name": process.env.OTEL_SERVICE_NAME || "get-date",
+  }),
 });
 
 const meter = meterProvider.getMeter("app-meter");
