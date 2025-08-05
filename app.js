@@ -4,9 +4,26 @@ initTracing();
 const PORT = process.env.PORT || "8080";
 const express = require("express");
 const { countAllRequests } = require("./monitoring");
+const { default: axios } = require("axios");
 const app = express();
 
 app.use(countAllRequests());
+
+app.get("/middle-tier", (req, res) => {
+  axios
+    .get("http://localhost:8081/backend")
+    .then((response) => {
+      res.json(response.data);
+    })
+    .catch((error) => {
+      console.error("Axios error:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    });
+});
+
+app.get("/backend", (req, res) => {
+  res.json({ message: "hello from backend" });
+});
 
 app.get("/", (req, res) => {
   res.send("Hello world!");
