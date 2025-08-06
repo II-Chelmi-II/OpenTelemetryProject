@@ -11,12 +11,12 @@ app.use(countAllRequests());
 
 app.get("/middle-tier", (req, res) => {
   axios
-    .get("http://localhost:8081/backend")
-    .then((response) => {
-      res.json(response.data);
+    .get(`http://localhost:${PORT}/backend`)
+    .then((result) => {
+      res.send(result.data);
     })
-    .catch((error) => {
-      console.error("Axios error:", error);
+    .catch((err) => {
+      console.error("Error:", err);
       res.status(500).json({ error: "Internal Server Error" });
     });
 });
